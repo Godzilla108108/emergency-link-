@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Login | EmergencyLink</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container" style="max-width: 500px; margin-top: 10vh;">
+        <header style="justify-content: center; border: none;">
+            <a href="/" class="logo" style="font-size: 2rem;">🚨 EmergencyLink</a>
+        </header>
+
+        <div class="card">
+            <div id="loginForm">
+                <h2 style="margin-bottom: 1.5rem; text-align: center;">Hospital Login</h2>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="admin@hospital.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button class="btn-primary" onclick="login()">Login</button>
+                <p style="margin-top: 1rem; text-align: center; color: var(--text-dim);">
+                    New hospital? <a href="#" onclick="toggleForms()" style="color: var(--secondary-blue);">Register here</a>
+                </p>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem; text-align: center;">Register Hospital</h2>
+                <div class="form-group">
+                    <label>Hospital Name</label>
+                    <input type="text" id="regName" placeholder="City General Hospital">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" placeholder="contact@hospital.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Location (City/Area)</label>
+                    <input type="text" id="regLocation" placeholder="Downtown">
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label>Latitude</label>
+                        <input type="number" id="regLat" step="any">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Longitude</label>
+                        <input type="number" id="regLng" step="any">
+                    </div>
+                </div>
+                <button class="btn-secondary" onclick="register()">Register Account</button>
+                <p style="margin-top: 1rem; text-align: center; color: var(--text-dim);">
+                    Already have an account? <a href="#" onclick="toggleForms()" style="color: var(--secondary-blue);">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleForms() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+            }
+        }
+
+        // Auto-fill coordinates
+        navigator.geolocation.getCurrentPosition((position) => {
+            document.getElementById('regLat').value = position.coords.latitude;
+            document.getElementById('regLng').value = position.coords.longitude;
+        });
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch('http://localhost:5555/hospital/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await res.json();
+                if (result.token) {
+                    localStorage.setItem('hospitalToken', result.token);
+                    localStorage.setItem('hospitalId', result.hospitalId);
+                    window.location.href = 'hospital-profile.html';
+                } else {
+                    alert(result.error || "Login failed");
+                }
+            } catch (e) {
+                console.warn('Backend offline, enabling Demo Mode login.');
+                if (email && password) {
+                    localStorage.setItem('hospitalToken', 'demo-token-' + Date.now());
+                    localStorage.setItem('hospitalId', 'demo-hosp-123');
+                    window.location.href = 'hospital-profile.html';
+                } else {
+                    alert("Demo Mode: Please enter any email and password to continue.");
+                }
+            }
+        }
+
+        async function register() {
+            const data = {
+                name: document.getElementById('regName').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value,
+                location: document.getElementById('regLocation').value,
+                latitude: document.getElementById('regLat').value,
+                longitude: document.getElementById('regLng').value
+            };
+
+            const res = await fetch('http://localhost:5555/hospital/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            if (result.token) {
+                localStorage.setItem('hospitalToken', result.token);
+                localStorage.setItem('hospitalId', result.hospitalId);
+                alert("Account created successfully!");
+                window.location.href = 'hospital-profile.html';
+            } else {
+                alert(result.error || "Registration failed");
+            }
+        }
+    </script>
+</body>
+</html>

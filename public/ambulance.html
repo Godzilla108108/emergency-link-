@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmergencyLink | Ambulance Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        /* Specific overrides for Ambulance */
+        .sidebar { display: flex; flex-direction: column; gap: 1.1rem; }
+        .main { grid-template-columns: 320px 1fr; }
+        
+        /* BLOOD GRID */
+        .blood-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+        .blood-btn {
+            padding: 0.42rem; border: 1px solid var(--border2); border-radius: 6px;
+            background: var(--surface2); color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 600;
+            cursor: pointer; text-align: center; transition: all 0.15s;
+        }
+        .blood-btn:hover { border-color: var(--red-glow); color: var(--text); }
+        .blood-btn.active { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+        /* SEVERITY */
+        .severity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+        .severity-btn {
+            padding: 0.45rem 0.2rem; border: 1px solid var(--border2); border-radius: 6px;
+            background: var(--surface2); color: var(--text-dim);
+            font-family: 'DM Sans', sans-serif; font-size: 0.68rem; font-weight: 600;
+            cursor: pointer; text-align: center; transition: all 0.15s;
+        }
+        .severity-btn:hover { border-color: var(--text-dim); color: var(--text); }
+        .severity-btn.active-low    { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
+        .severity-btn.active-medium { border-color: var(--amber);  color: var(--amber);  background: var(--amber-dim); }
+        .severity-btn.active-high   { border-color: #FF8C00;       color: #FF8C00;       background: #FF8C0022; }
+        .severity-btn.active-critical { border-color: var(--red);  color: var(--red);    background: var(--red-dim); }
+
+        /* MAP */
+        .map-panel { display: flex; flex-direction: column; gap: 1.1rem; }
+        #map { width: 100%; height: 400px; border-radius: 10px; border: 1px solid var(--border2); overflow: hidden; }
+        .leaflet-tile { filter: invert(100%) hue-rotate(180deg) brightness(82%) contrast(88%) saturate(0.5); }
+        .leaflet-container { background: #0A0C0E !important; }
+
+        /* HOSPITAL LIST */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; }
+        .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.1em; color: var(--text-mid); }
+        .results-count { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-dim); }
+
+        .hospital-list { display: flex; flex-direction: column; gap: 0.7rem; }
+        .hospital-item {
+            background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px;
+            padding: 0.9rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.9rem;
+            transition: border-color 0.2s, background 0.2s;
+            animation: slide-in-up 0.3s ease-out both;
+        }
+        .hospital-item:hover { border-color: var(--blue); background: var(--blue-dim); transform: translateX(2px); }
+
+        .hospital-rank { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--border2); line-height: 1; min-width: 24px; }
+        .hospital-info { flex: 1; }
+        .hospital-name { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
+        .hospital-location { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.3rem; }
+        .hospital-meta { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        
+        /* EN-ROUTE */
+        .en-route-card {
+            display: none; background: var(--surface);
+            border: 1px solid var(--red); border-radius: 14px; padding: 1.4rem;
+            position: relative; overflow: hidden;
+            animation: enroute-pulse 2s ease-in-out infinite;
+        }
+        @keyframes enroute-pulse {
+            0%,100% { box-shadow: 0 0 0 0 var(--red-glow), inset 0 0 40px var(--red-dim); }
+            50% { box-shadow: 0 0 18px 4px var(--red-dim), inset 0 0 60px var(--red-dim); }
+        }
+        .en-route-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--red); animation: scan-bar 1.5s ease-in-out infinite alternate; }
+        .enroute-header { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.1rem; }
+        .enroute-icon { font-size: 2.2rem; animation: amb-bounce 0.5s ease-in-out infinite alternate; }
+        @keyframes amb-bounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+        .enroute-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.55rem; letter-spacing: 0.08em; color: var(--red); }
+        .enroute-subtitle { font-size: 0.72rem; color: var(--text-dim); }
+        .enroute-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.1rem; }
+        .enroute-stat { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 0.75rem 0.9rem; }
+        .enroute-stat-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.2rem; }
+        .enroute-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; color: var(--red); }
+        .btn-cancel {
+            width: 100%; padding: 0.75rem; background: transparent;
+            border: 1px solid var(--border2); color: var(--text-dim); border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: 0.83rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cancel:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="logo active-pulse">
+        <div class="logo-icon">🚨</div>
+        <span class="logo-text">Emergency<span>Link</span></span>
+        <span class="logo-sub">Ambulance Unit</span>
+    </a>
+    <div class="header-right">
+        <div class="status-badge active"><span class="status-dot"></span> Unit Active</div>
+        <div class="header-badge" style="font-family:'JetBrains Mono',monospace;color:var(--text-dim)" id="clock">00:00:00</div>
+    </div>
+</header>
+
+<div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="card">
+            <div class="stat-row">
+                <div class="stat-box stat-box-small"><div class="stat-label">Unit ID</div><div class="stat-value stat-value-small val-blue">AMB-07</div></div>
+                <div class="stat-box stat-box-small"><div class="stat-label">Status</div><div class="stat-value stat-value-small val-green">READY</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><div class="card-title-left">Patient Details</div></div>
+
+            <div class="form-group">
+                <label>Condition / Complaint</label>
+                <input type="text" id="condition" placeholder="e.g. Cardiac Arrest, Trauma…">
+            </div>
+
+            <div class="form-group">
+                <label>Blood Group Needed</label>
+                <div class="blood-grid">
+                    <button class="blood-btn active" onclick="selectBlood(this,'O+')">O+</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'O-')">O−</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'A+')">A+</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'A-')">A−</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'B+')">B+</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'B-')">B−</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'AB+')">AB+</button>
+                    <button class="blood-btn" onclick="selectBlood(this,'AB-')">AB−</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Severity Level</label>
+                <div class="severity-grid">
+                    <button class="severity-btn" onclick="selectSeverity(this,'Low','active-low')">Low</button>
+                    <button class="severity-btn" onclick="selectSeverity(this,'Medium','active-medium')">Med</button>
+                    <button class="severity-btn" onclick="selectSeverity(this,'High','active-high')">High</button>
+                    <button class="severity-btn active-critical" onclick="selectSeverity(this,'Critical','active-critical')">CRIT</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" id="findBtn" onclick="findHospitals()" style="margin-top: 0.5rem;">🔍 &nbsp;Find Nearest Hospitals</button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="map-panel">
+        <div class="card" style="padding:0.75rem;">
+            <div id="map"></div>
+        </div>
+
+        <div class="card" id="selectionView">
+            <div class="section-header">
+                <span class="section-title">Nearby Hospitals</span>
+                <span class="results-count" id="resultsCount">—</span>
+            </div>
+            <div class="hospital-list" id="hospitalList">
+                <div class="state-msg">
+                    <div class="icon">🏥</div>
+                    Enter patient details and press <strong>Find Hospitals</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="en-route-card" id="enRouteView">
+            <div class="enroute-header">
+                <span class="enroute-icon">🚑</span>
+                <div>
+                    <div class="enroute-title">En Route</div>
+                    <div class="enroute-subtitle" id="targetHospitalInfo">—</div>
+                </div>
+            </div>
+            <div class="enroute-stats">
+                <div class="enroute-stat"><div class="enroute-stat-label">ETA</div><div class="enroute-stat-value" id="etaVal">—</div></div>
+                <div class="enroute-stat"><div class="enroute-stat-label">Distance</div><div class="enroute-stat-value" id="distVal">—</div></div>
+            </div>
+            <div class="card" style="background:var(--surface2);border:1px solid var(--amber);margin-bottom:1.1rem;text-align:center">
+                <div style="font-size:0.65rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.4rem">Counter OTP (Share with Admin)</div>
+                <div id="otpDisplay" style="font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:600;color:var(--amber);letter-spacing:0.2em">------</div>
+            </div>
+            <button class="btn-cancel" onclick="cancelRoute()">✕ &nbsp;Cancel Alert</button>
+        </div>
+    </div>
+</div>
+
+<script src="http://localhost:5555/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script>
+    const socket = io('http://localhost:5555');
+    let selectedBlood = 'O+';
+    let selectedSeverity = 'Critical';
+    let currentEmergencyId = null;
+    let userLocation = { lat: 28.6139, lng: 77.2090 };
+    let map, userMarker, routingControl, polylineRoute;
+    let hospitalMarkers = [];
+    let currentHospitals = [];
+
+    // Clock
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // Toggles
+    function selectBlood(btn, val) {
+        document.querySelectorAll('.blood-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active'); selectedBlood = val;
+    }
+    function selectSeverity(btn, val, cls) {
+        document.querySelectorAll('.severity-btn').forEach(b => b.className = 'severity-btn');
+        btn.classList.add(cls); selectedSeverity = val;
+    }
+
+    // Map
+    function initMap() {
+        map = L.map('map').setView([userLocation.lat, userLocation.lng], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+            attribution: '© OpenStreetMap contributors © CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+        
+        const ambIcon = L.divIcon({
+            html: `<div style="width:28px;height:28px;background:#FF2D2D;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 0 10px #FF2D2D88">🚑</div>`,
+            iconSize: [28,28], iconAnchor: [14,14]
+        });
+        userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: ambIcon }).addTo(map).bindPopup('<b>Your Ambulance</b>');
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => { userLocation.lat = pos.coords.latitude; userLocation.lng = pos.coords.longitude; if (!map) initMap(); else { map.setView([userLocation.lat,userLocation.lng],13); userMarker.setLatLng([userLocation.lat,userLocation.lng]); } },
+        () => { if (!map) initMap(); }
+    );
+
+    function calculateETA(dist) { return Math.round(dist * 2) + 2 + ' mins'; }
+
+    async function findHospitals() {
+        const btn = document.getElementById('findBtn');
+        btn.disabled = true; btn.textContent = '⏳  Searching…';
+        document.getElementById('hospitalList').innerHTML = `<div class="state-msg"><div class="icon">📡</div>Scanning nearby facilities…</div>`;
+        document.getElementById('resultsCount').textContent = '—';
+
+        const data = {
+            patientCondition: document.getElementById('condition').value || 'Unknown',
+            bloodGroup: selectedBlood,
+            severity: selectedSeverity,
+            latitude: userLocation.lat,
+            longitude: userLocation.lng
+        };
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); 
+
+            const res = await fetch('http://localhost:5555/emergency', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            let result;
+            if (!res.ok) {
+                console.warn('Backend offline, using mock hospital data.');
+                throw new Error("Backend offline");
+            } else {
+                result = await res.json();
+            }
+            
+            currentEmergencyId = result.emergencyId;
+
+            if (result.nearbyHospitals && result.nearbyHospitals.length > 0) {
+                currentHospitals = result.nearbyHospitals.map((h, i) => {
+                    return { ...h, displayDistance: h.distance.toFixed(2) + ' km', eta: calculateETA(h.distance) };
+                });
+                displayHospitals(currentHospitals);
+                updateMapMarkers(currentHospitals);
+                document.getElementById('resultsCount').textContent = currentHospitals.length + ' found';
+            } else {
+                document.getElementById('hospitalList').innerHTML = `<div class="state-msg"><div class="icon">❌</div>No hospitals found nearby.</div>`;
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+            const fallbackResults = [
+                { _id: 'h1', name: 'City General Hospital (Demo)', location: 'Central District', latitude: userLocation.lat + 0.01, longitude: userLocation.lng + 0.01, distance: 1.5, icuBeds: 5, emergencyBeds: 12, displayDistance: '1.5 km', eta: '5 mins' }
+            ];
+            currentHospitals = fallbackResults;
+            displayHospitals(fallbackResults);
+            updateMapMarkers(fallbackResults);
+            document.getElementById('resultsCount').textContent = '1 found (Offline)';
+        }
+        btn.disabled = false; btn.innerHTML = '🔍 &nbsp;Find Nearest Hospitals';
+    }
+
+    function updateMapMarkers(hospitals) {
+        if (!map) return;
+        hospitalMarkers.forEach(m => map.removeLayer(m)); hospitalMarkers = [];
+        if (polylineRoute) map.removeLayer(polylineRoute);
+        
+        hospitals.forEach(h => {
+            const icon = L.divIcon({
+                html: `<div style="background:#111418;border:1px solid #2979FF;color:#2979FF;border-radius:6px;padding:2px 6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;white-space:nowrap">${h.name.split(' ')[0]}</div>`,
+                iconAnchor: [0, 0]
+            });
+            const marker = L.marker([h.latitude, h.longitude], { icon }).addTo(map).bindPopup(`<b>${h.name}</b><br>${h.location}<br>ETA: ${h.eta}`);
+            hospitalMarkers.push(marker);
+        });
+        if (hospitalMarkers.length > 0) {
+            const group = new L.featureGroup([userMarker, ...hospitalMarkers]);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+
+    function displayHospitals(hospitals) {
+        const list = document.getElementById('hospitalList');
+        list.innerHTML = '';
+        hospitals.forEach((h, i) => {
+            const item = document.createElement('div');
+            item.className = 'hospital-item';
+            item.style.animationDelay = (i * 0.07) + 's';
+            item.innerHTML = `
+                <div class="hospital-rank">0${i+1}</div>
+                <div class="hospital-info">
+                    <div class="hospital-name">${h.name}</div>
+                    <div class="hospital-location">📍 ${h.location}</div>
+                    <div class="hospital-meta" style="margin-top: 5px;">
+                        <span class="meta-chip chip-eta">⏱ ${h.eta}</span>
+                        <span class="meta-chip chip-dist">🚗 ${h.displayDistance}</span>
+                        <span class="meta-chip chip-icu">ICU ${h.icuBeds}</span>
+                        <span class="meta-chip chip-emr">EMR ${h.emergencyBeds}</span>
+                    </div>
+                </div>
+                <button class="btn-alert" onclick="sendAlert('${h._id}','${h.eta}')">Alert</button>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    async function sendAlert(hospitalId, eta) {
+        const h = currentHospitals.find(h => h._id === hospitalId);
+        
+        // Simulating the actual server call if offline or error happens, but attempting it first:
+        try {
+            const res = await fetch('http://localhost:5555/alert', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emergencyId: currentEmergencyId, hospitalId, eta })
+            });
+
+            if (!res.ok) {
+                // If the error happens but we are mocking for demo:
+                showRoute(h);
+                transitionToEnroute(h, '123456');
+                return;
+            }
+
+            const result = await res.json();
+            if (result.success) {
+                showRoute(h);
+                transitionToEnroute(h, result.otp);
+            }
+        } catch (e) {
+            // For Demo mapping
+            showRoute(h);
+            transitionToEnroute(h, '123456');
+        }
+    }
+    
+    function transitionToEnroute(h, otp) {
+        document.getElementById('selectionView').style.display = 'none';
+        document.getElementById('enRouteView').style.display = 'block';
+        document.getElementById('targetHospitalInfo').textContent = h.name + ' · ' + h.location;
+        document.getElementById('etaVal').textContent = h.eta;
+        document.getElementById('distVal').textContent = h.displayDistance;
+        document.getElementById('otpDisplay').textContent = otp || '------';
+    }
+
+    function showRoute(h) {
+        hospitalMarkers.forEach(m => map.removeLayer(m)); hospitalMarkers = [];
+        if (polylineRoute) map.removeLayer(polylineRoute);
+        
+        const icon = L.divIcon({
+            html: `<div style="background:#FF2D2D;color:#fff;border-radius:6px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;box-shadow:0 0 10px #FF2D2D88;">TARGET</div>`,
+            iconAnchor: [0, 0]
+        });
+        hospitalMarkers.push(L.marker([h.latitude, h.longitude], { icon }).addTo(map).bindPopup(`<b>${h.name}</b>`).openPopup());
+        
+        // Instead of heavy OSRM, draw a dashed, animated polyline indicating Direct Route
+        polylineRoute = L.polyline([
+            [userLocation.lat, userLocation.lng], 
+            [h.latitude, h.longitude]
+        ], { color: '#FF2D2D', dashArray: '5, 10', weight: 3, opacity: 0.8 }).addTo(map);
+
+        map.fitBounds(polylineRoute.getBounds().pad(0.2));
+    }
+
+    function cancelRoute() {
+        document.getElementById('selectionView').style.display = 'block';
+        document.getElementById('enRouteView').style.display = 'none';
+        updateMapMarkers(currentHospitals);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="EmergencyLink - Real-time emergency response platform connecting ambulances and hospitals.">
+    <title>EmergencyLink | Real-Time Care Connectivity</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Ambient Orbs purely for styling -->
+    <div class="ambient-orb red"></div>
+    <div class="ambient-orb blue"></div>
+
+    <div class="container">
+        <nav>
+            <a href="index.html" class="logo">
+                <i class="ri-pulse-fill"></i> EmergencyLink
+            </a>
+            <div class="nav-links">
+                <!-- Add navigation if needed -->
+            </div>
+        </nav>
+
+        <section class="hero-wrapper">
+            <div class="hero-content">
+                <div class="badge">
+                    <span class="badge-dot"></span> Live Network Online
+                </div>
+                <h1>Swift Response.<br><span>Saved Lives.</span></h1>
+                <p>A mission-critical platform synchronizing ambulances, hospitals, and blood banks in real-time to minimize response delays.</p>
+
+                <div class="choice-grid">
+                    <a href="ambulance.html" class="choice-card glass ambulance">
+                        <i class="ri-truck-line"></i>
+                        <h2>Ambulance</h2>
+                        <p>Locate the nearest specialized facilities and transmit patient vitals instantly.</p>
+                    </a>
+                    
+                    <a href="patient-login.html" class="choice-card glass patient">
+                        <i class="ri-user-heart-line"></i>
+                        <h2>Patient</h2>
+                        <p>Direct emergency connectivity for individuals with personalized medical profiles.</p>
+                    </a>
+
+                    <a href="login.html" class="choice-card glass hospital">
+                        <i class="ri-hospital-line"></i>
+                        <h2>Hospital</h2>
+                        <p>Manage critical resource levels, available beds, and live emergency queues.</p>
+                    </a>
+                    
+                    <a href="blood.html" class="choice-card glass blood">
+                        <i class="ri-drop-fill"></i>
+                        <h2>Blood Stock</h2>
+                        <p>Access fractional blood availability metrics across the entire regional network.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <script>
+        // Micro-interaction for cards lighting up from mouse position
+        document.querySelectorAll('.choice-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body>
+
+</html>

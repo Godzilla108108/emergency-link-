@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Portal | EmergencyLink</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .patient-accent { color: #2979FF !important; }
+        .btn-patient { background-color: #2979FF !important; color: white !important; }
+        .btn-patient:hover { background-color: #1565C0 !important; }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 500px; margin-top: 5vh;">
+        <header style="justify-content: center; border: none;">
+            <a href="/" class="logo" style="font-size: 2rem;">🚨 EmergencyLink</a>
+        </header>
+
+        <div class="card">
+            <div id="loginForm">
+                <h2 style="margin-bottom: 1.5rem; text-align: center;">Patient Login</h2>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button class="btn-primary btn-patient" onclick="login()">Login</button>
+                <p style="margin-top: 1rem; text-align: center; color: var(--text-dim);">
+                    New here? <a href="#" onclick="toggleForms()" class="patient-accent">Create a profile</a>
+                </p>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem; text-align: center;">Patient Registration</h2>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" placeholder="••••••••">
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label>Age</label>
+                        <input type="number" id="regAge">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Blood Group</label>
+                        <select id="regBlood" style="width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 0.6rem; border-radius: 8px;">
+                            <option value="O+">O+</option><option value="O-">O-</option>
+                            <option value="A+">A+</option><option value="A-">A-</option>
+                            <option value="B+">B+</option><option value="B-">B-</option>
+                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Medical History (Allergies, conditions)</label>
+                    <input type="text" id="regHistory" placeholder="e.g. Diabetic, Penicillin allergy">
+                </div>
+                <div class="form-group">
+                    <label>Emergency Contact Phone</label>
+                    <input type="tel" id="regPhone" placeholder="+91 98765 43210">
+                </div>
+                <button class="btn-secondary btn-patient" onclick="register()">Register Account</button>
+                <p style="margin-top: 1rem; text-align: center; color: var(--text-dim);">
+                    Already have an account? <a href="#" onclick="toggleForms()" class="patient-accent">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleForms() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch('http://localhost:5555/patient/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await res.json();
+                if (result.token) {
+                    localStorage.setItem('patientToken', result.token);
+                    localStorage.setItem('patientId', result.patientId);
+                    localStorage.setItem('patientName', result.name);
+                    window.location.href = 'patient-emergency.html';
+                } else {
+                    alert(result.error || "Login failed");
+                }
+            } catch (e) {
+                console.warn('Backend offline, enabling Patient Demo Mode.');
+                if (email && password) {
+                    localStorage.setItem('patientToken', 'demo-patient-token-' + Date.now());
+                    localStorage.setItem('patientId', 'demo-pat-123');
+                    localStorage.setItem('patientName', email.split('@')[0]);
+                    window.location.href = 'patient-emergency.html';
+                } else {
+                    alert("Demo Mode: Please enter any email and password to continue.");
+                }
+            }
+        }
+
+        async function register() {
+            const data = {
+                name: document.getElementById('regName').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value,
+                age: document.getElementById('regAge').value,
+                bloodGroup: document.getElementById('regBlood').value,
+                medicalHistory: document.getElementById('regHistory').value,
+                phone: document.getElementById('regPhone').value
+            };
+
+            const res = await fetch('http://localhost:5555/patient/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            if (result.token) {
+                localStorage.setItem('patientToken', result.token);
+                localStorage.setItem('patientId', result.patientId);
+                localStorage.setItem('patientName', data.name);
+                alert("Account created successfully!");
+                window.location.href = 'patient-emergency.html';
+            } else {
+                alert(result.error || "Registration failed");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Network | EmergencyLink</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        /* Grain texture */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0;
+        }
+
+        /* Top accent bar */
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--red) 40%, #FF6B6B 60%, transparent);
+            z-index: 999;
+            animation: glow-bar 3s ease-in-out infinite alternate;
+        }
+        @keyframes glow-bar { from { opacity: 0.6; } to { opacity: 1; } }
+
+        /* ── HEADER ── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.85rem 2rem;
+            background: rgba(10,12,14,0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border2);
+        }
+
+        .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+        .logo-drop {
+            font-size: 1.3rem;
+            animation: drip 2.5s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px var(--red-glow));
+        }
+        @keyframes drip {
+            0%,100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(2px) scale(0.97); }
+        }
+        .logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.06em; }
+        .logo-text span { color: var(--red); }
+
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+
+        .live-badge {
+            display: flex; align-items: center; gap: 0.4rem;
+            background: var(--red-dim); border: 1px solid var(--red);
+            color: var(--red); padding: 0.25rem 0.65rem;
+            border-radius: 999px; font-size: 0.68rem; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .live-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: var(--red);
+            animation: blink 1s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.15; } }
+
+        .refresh-timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem; color: var(--text-dim);
+        }
+
+        /* ── MAIN ── */
+        .main {
+            position: relative; z-index: 1;
+            max-width: 1100px; margin: 0 auto;
+            padding: 1.6rem 2rem;
+            display: flex; flex-direction: column; gap: 1.4rem;
+        }
+
+        /* ── SUMMARY BAR ── */
+        .summary-bar {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 0.9rem;
+        }
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 12px; padding: 1rem 1.1rem;
+            position: relative; overflow: hidden;
+        }
+        .summary-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border2), transparent);
+        }
+        .summary-card-label {
+            font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.3rem;
+        }
+        .summary-card-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem; line-height: 1;
+        }
+        .summary-card-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 0.2rem; }
+        .val-red    { color: var(--red); }
+        .val-green  { color: var(--green); }
+        .val-amber  { color: var(--amber); }
+        .val-white  { color: var(--text); }
+
+        /* ── SECTION HEADER ── */
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem;
+            letter-spacing: 0.1em; color: var(--text-mid);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .section-title::before {
+            content: ''; width: 3px; height: 14px;
+            background: var(--red); border-radius: 2px;
+        }
+        .hospital-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem; color: var(--text-dim);
+        }
+
+        /* ── HOSPITAL CARDS ── */
+        .hospital-list { display: flex; flex-direction: column; gap: 0.9rem; }
+
+        .hospital-card {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+            animation: slide-in 0.35s ease-out both;
+        }
+        @keyframes slide-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .hospital-card:hover { border-color: rgba(255,45,45,0.35); }
+
+        .hospital-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.9rem 1.1rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .hospital-name { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 0.18rem; }
+        .hospital-location { font-size: 0.7rem; color: var(--text-dim); }
+
+        .hospital-availability {
+            font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em;
+            text-transform: uppercase; padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+        }
+        .avail-high   { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green); }
+        .avail-medium { background: var(--amber-dim);  color: var(--amber);  border: 1px solid var(--amber); }
+        .avail-low    { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red); }
+        .avail-none   { background: var(--border);     color: var(--text-dim); border: 1px solid var(--border2); }
+
+        /* ── BLOOD GRID ── */
+        .blood-grid {
+            display: grid; grid-template-columns: repeat(8, 1fr);
+            gap: 0; 
+        }
+        .blood-cell {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 0.65rem 0.4rem;
+            border-right: 1px solid var(--border);
+            position: relative; overflow: hidden;
+            transition: background 0.15s;
+        }
+        .blood-cell:last-child { border-right: none; }
+        .blood-cell:hover { background: var(--surface2); }
+
+        /* Fill bar behind each cell */
+        .blood-cell::before {
+            content: '';
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: var(--fill, 0%);
+            transition: height 0.6s ease;
+        }
+        .blood-cell.level-high::before   { background: rgba(0,230,118,0.08); --fill: 60%; }
+        .blood-cell.level-medium::before { background: rgba(255,184,0,0.08); --fill: 40%; }
+        .blood-cell.level-low::before    { background: rgba(255,45,45,0.08); --fill: 20%; }
+        .blood-cell.level-critical::before { background: rgba(255,45,45,0.12); --fill: 10%; }
+        .blood-cell.level-empty::before  { background: transparent; }
+
+        .blood-type {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.05rem; letter-spacing: 0.04em;
+            position: relative; z-index: 1;
+            margin-bottom: 0.15rem;
+        }
+        .blood-units {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem; font-weight: 600;
+            position: relative; z-index: 1;
+        }
+        .blood-bar {
+            width: 28px; height: 3px; border-radius: 2px;
+            margin-top: 0.3rem; position: relative; z-index: 1;
+            background: var(--border2);
+            overflow: hidden;
+        }
+        .blood-bar-fill {
+            height: 100%; border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* Color classes by level */
+        .level-high   .blood-type { color: var(--green); }
+        .level-high   .blood-units { color: var(--green); }
+        .level-high   .blood-bar-fill { background: var(--green); width: 100%; }
+
+        .level-medium .blood-type { color: var(--amber); }
+        .level-medium .blood-units { color: var(--amber); }
+        .level-medium .blood-bar-fill { background: var(--amber); width: 60%; }
+
+        .level-low    .blood-type { color: #FF8C00; }
+        .level-low    .blood-units { color: #FF8C00; }
+        .level-low    .blood-bar-fill { background: #FF8C00; width: 30%; }
+
+        .level-critical .blood-type { color: var(--red); }
+        .level-critical .blood-units { color: var(--red); }
+        .level-critical .blood-bar-fill { background: var(--red); width: 10%; animation: urgent-pulse 1s ease-in-out infinite alternate; }
+        @keyframes urgent-pulse { from { opacity: 0.5; } to { opacity: 1; } }
+
+        .level-empty  .blood-type { color: var(--text-dim); }
+        .level-empty  .blood-units { color: var(--text-dim); }
+        .level-empty  .blood-bar-fill { background: var(--border2); width: 0; }
+
+        /* ── LEGEND ── */
+        .legend {
+            display: flex; align-items: center; gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.68rem; color: var(--text-dim); }
+        .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+        /* ── EMPTY / LOADING ── */
+        .state-msg { text-align: center; padding: 3rem 1rem; color: var(--text-dim); font-size: 0.85rem; }
+        .state-msg .icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="#" class="logo">
+        <span class="logo-drop">🩸</span>
+        <span class="logo-text">Blood<span>Net</span></span>
+    </a>
+    <div class="header-right">
+        <div class="live-badge"><span class="live-dot"></span> Live</div>
+        <div class="refresh-timer">Refreshes in <span id="countdown">10</span>s</div>
+    </div>
+</header>
+
+<div class="main">
+
+    <!-- Summary Bar -->
+    <div class="summary-bar" id="summaryBar">
+        <div class="summary-card">
+            <div class="summary-card-label">Hospitals Tracked</div>
+            <div class="summary-card-value val-white" id="statHospitals">—</div>
+            <div class="summary-card-sub">in network</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-label">Critical Shortages</div>
+            <div class="summary-card-value val-red" id="statCritical">—</div>
+            <div class="summary-card-sub">blood types &lt; 5 units</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-label">Well Stocked</div>
+            <div class="summary-card-value val-green" id="statGood">—</div>
+            <div class="summary-card-sub">blood types &gt; 20 units</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-label">Last Updated</div>
+            <div class="summary-card-value val-amber" id="statTime" style="font-size:1.4rem">—</div>
+            <div class="summary-card-sub">auto-refresh every 10s</div>
+        </div>
+    </div>
+
+    <!-- Hospital List -->
+    <div>
+        <div class="section-header" style="margin-bottom:0.9rem">
+            <div class="section-title">Inventory by Hospital</div>
+            <div style="display:flex;align-items:center;gap:1.2rem">
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>High (&gt;20)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Medium (10–20)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#FF8C00"></div>Low (5–10)</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Critical (&lt;5)</div>
+                </div>
+                <span class="hospital-count" id="hospitalCount">—</span>
+            </div>
+        </div>
+        <div class="hospital-list" id="bloodInventory">
+            <div class="state-msg"><div class="icon">🩸</div>Loading blood network data…</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const BLOOD_GROUPS = ['O+','O-','A+','A-','B+','B-','AB+','AB-'];
+    let countdown = 10;
+    let hospitals = [];
+
+    function getLevel(units) {
+        if (units === 0 || units === undefined || units === null) return 'empty';
+        if (units < 5)  return 'critical';
+        if (units < 10) return 'low';
+        if (units < 20) return 'medium';
+        return 'high';
+    }
+
+    function getAvailabilityLabel(bloodAvail) {
+        if (!bloodAvail) return { cls: 'avail-none', label: 'No Data' };
+        const vals = Object.values(bloodAvail);
+        const critCount = vals.filter(v => v < 5).length;
+        const highCount = vals.filter(v => v >= 20).length;
+        if (critCount >= 3) return { cls: 'avail-low', label: 'Critical' };
+        if (highCount >= 5) return { cls: 'avail-high', label: 'Well Stocked' };
+        return { cls: 'avail-medium', label: 'Moderate' };
+    }
+
+    function renderHospitals(data) {
+        const container = document.getElementById('bloodInventory');
+        container.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `<div class="state-msg"><div class="icon">❌</div>No hospital data available.</div>`;
+            return;
+        }
+
+        // Stats
+        let criticalCount = 0, goodCount = 0;
+        data.forEach(h => {
+            if (h.bloodAvailable) {
+                Object.values(h.bloodAvailable).forEach(v => {
+                    if (v < 5)  criticalCount++;
+                    if (v >= 20) goodCount++;
+                });
+            }
+        });
+        document.getElementById('statHospitals').textContent = data.length;
+        document.getElementById('statCritical').textContent = criticalCount;
+        document.getElementById('statGood').textContent = goodCount;
+        document.getElementById('statTime').textContent = new Date().toTimeString().slice(0,5);
+        document.getElementById('hospitalCount').textContent = data.length + ' hospitals';
+
+        data.forEach((h, i) => {
+            const avail = getAvailabilityLabel(h.bloodAvailable);
+            const card = document.createElement('div');
+            card.className = 'hospital-card';
+            card.style.animationDelay = (i * 0.06) + 's';
+
+            let bloodCells = '';
+            BLOOD_GROUPS.forEach(group => {
+                const units = h.bloodAvailable ? (h.bloodAvailable[group] ?? 0) : 0;
+                const level = getLevel(units);
+                const display = units === 0 ? '—' : units;
+                bloodCells += `
+                    <div class="blood-cell level-${level}">
+                        <div class="blood-type">${group}</div>
+                        <div class="blood-units">${display}</div>
+                        <div class="blood-bar"><div class="blood-bar-fill"></div></div>
+                    </div>`;
+            });
+
+            card.innerHTML = `
+                <div class="hospital-card-header">
+                    <div>
+                        <div class="hospital-name">${h.name}</div>
+                        <div class="hospital-location">📍 ${h.location}</div>
+                    </div>
+                    <span class="hospital-availability ${avail.cls}">${avail.label}</span>
+                </div>
+                <div class="blood-grid">${bloodCells}</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function loadBloodData() {
+        try {
+            const res = await fetch('http://localhost:5555/hospitals');
+            if (!res.ok) {
+                console.warn('Backend offline, using mock blood network data.');
+                hospitals = [
+                    { _id: 'h1', name: 'City General Hospital', location: 'District 1', bloodAvailable: { 'O+': 25, 'O-': 3, 'A+': 18, 'A-': 5, 'B+': 12, 'B-': 1, 'AB+': 8, 'AB-': 0 } },
+                    { _id: 'h2', name: 'Metro Medical Center', location: 'West Side', bloodAvailable: { 'O+': 12, 'O-': 8, 'A+': 30, 'A-': 12, 'B+': 22, 'B-': 7, 'AB+': 15, 'AB-': 4 } },
+                    { _id: 'h3', name: 'St. Mary\'s ER', location: 'North Plaza', bloodAvailable: { 'O+': 4, 'O-': 1, 'A+': 2, 'A-': 0, 'B+': 5, 'B-': 2, 'AB+': 3, 'AB-': 1 } },
+                    { _id: 'h4', name: 'LifeCare Clinic', location: 'East Valley', bloodAvailable: { 'O+': 45, 'O-': 12, 'A+': 35, 'A-': 8, 'B+': 28, 'B-': 15, 'AB+': 20, 'AB-': 10 } }
+                ];
+            } else {
+                hospitals = await res.json();
+            }
+            renderHospitals(hospitals);
+        } catch (err) {
+            console.error('Blood data error:', err);
+            // Fallback inventory
+            hospitals = [
+                { _id: 'h1', name: 'City General (Demo Mode)', location: 'District 1', bloodAvailable: { 'O+': 25, 'O-': 3, 'A+': 18, 'A-': 5, 'B+': 12, 'B-': 1, 'AB+': 8, 'AB-': 0 } }
+            ];
+            renderHospitals(hospitals);
+        }
+    }
+
+    // Countdown timer
+    function tick() {
+        countdown--;
+        document.getElementById('countdown').textContent = countdown;
+        if (countdown <= 0) {
+            countdown = 10;
+            loadBloodData();
+        }
+    }
+
+    loadBloodData();
+    setInterval(tick, 1000);
+</script>
+</body>
+</html>

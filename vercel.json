@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/socket.io/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/hospital/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/patient/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/emergency",
+      "dest": "server.js"
+    },
+    {
+      "src": "/hospitals",
+      "dest": "server.js"
+    },
+    {
+      "src": "/alert",
+      "dest": "server.js"
+    },
+    {
+      "src": "/seed",
+      "dest": "server.js"
+    },
+    {
+      "src": "/blood",
+      "dest": "server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ]
+}
