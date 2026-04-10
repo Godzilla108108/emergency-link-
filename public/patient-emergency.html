@@ -73,10 +73,10 @@
         <div id="hospitalList"></div>
     </div>
 </div>
-<script src="http://localhost:5555/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const socket = io('http://localhost:5555');
+    const socket = io();
     const patientToken = localStorage.getItem('patientToken');
     const patientName = localStorage.getItem('patientName');
     if (!patientToken) window.location.href = 'patient-login.html';
@@ -113,7 +113,7 @@
         };
 
         try {
-            const res = await fetch('http://localhost:5555/emergency', {
+            const res = await fetch('/emergency', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
             });
             
@@ -160,7 +160,7 @@
     }
 
     async function sendAlert(hospitalId, eta) {
-        const res = await fetch('http://localhost:5555/alert', {
+        const res = await fetch('/alert', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ emergencyId: currentEmergencyId, hospitalId, eta })
         });

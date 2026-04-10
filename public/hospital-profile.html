@@ -219,14 +219,14 @@
 
 <!-- Chart.js & socket.io -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="http://localhost:5555/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
 <script>
     const token = localStorage.getItem('hospitalToken');
     const hospitalId = localStorage.getItem('hospitalId');
     if (!token) window.location.href = 'login.html';
 
-    const socket = io('http://localhost:5555');
+    const socket = io();
     socket.emit('join_hospital', hospitalId);
 
     let alertCount = 0;
@@ -306,7 +306,7 @@
     // Load Profile
     async function loadProfile() {
         try {
-            const res = await fetch('http://localhost:5555/hospital/me', { headers: { 'Authorization': `Bearer ${token}` } });
+            const res = await fetch('/hospital/me', { headers: { 'Authorization': `Bearer ${token}` } });
             let data;
             if (!res.ok) {
                 console.warn('Backend offline, using fallback');
@@ -336,7 +336,7 @@
     // Manage Alerts
     async function loadAlerts() {
         try {
-            const res = await fetch('http://localhost:5555/hospital/alerts', { headers: { 'Authorization': `Bearer ${token}` } });
+            const res = await fetch('/hospital/alerts', { headers: { 'Authorization': `Bearer ${token}` } });
             let alerts = [];
             if (!res.ok) {
                 alerts = [{ _id: 'mock1', requestSource: 'Ambulance', patientName: 'Rahul', patientCondition: 'Trauma', bloodGroup: 'O+', severity: 'Critical', eta: '4 mins', timestamp: Date.now() - 120000 }];
@@ -383,7 +383,7 @@
         if (!otp || otp.length !== 6) { showToast('Enter a valid 6-digit OTP', 'error'); return; }
 
         try {
-            const res = await fetch('http://localhost:5555/hospital/verify-otp', {
+            const res = await fetch('/hospital/verify-otp', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ emergencyId, otp })
             });
@@ -417,7 +417,7 @@
         };
 
         try {
-            const res = await fetch('http://localhost:5555/hospital/update', {
+            const res = await fetch('/hospital/update', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ icuBeds: icu, emergencyBeds: emr, bloodAvailable: blood })
             });

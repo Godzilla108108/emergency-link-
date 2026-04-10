@@ -99,7 +99,7 @@
             const password = document.getElementById('loginPassword').value;
 
             try {
-                const res = await fetch('http://localhost:5555/patient/login', {
+                const res = await fetch('/patient/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -138,7 +138,7 @@
                 phone: document.getElementById('regPhone').value
             };
 
-            const res = await fetch('http://localhost:5555/patient/register', {
+            const res = await fetch('/patient/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

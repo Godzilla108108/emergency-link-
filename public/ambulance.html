@@ -195,11 +195,11 @@
     </div>
 </div>
 
-<script src="http://localhost:5555/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 <script>
-    const socket = io('http://localhost:5555');
+    const socket = io();
     let selectedBlood = 'O+';
     let selectedSeverity = 'Critical';
     let currentEmergencyId = null;
@@ -265,7 +265,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 4000); 
 
-            const res = await fetch('http://localhost:5555/emergency', {
+            const res = await fetch('/emergency', {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(data),
@@ -355,7 +355,7 @@
         
         // Simulating the actual server call if offline or error happens, but attempting it first:
         try {
-            const res = await fetch('http://localhost:5555/alert', {
+            const res = await fetch('/alert', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ emergencyId: currentEmergencyId, hospitalId, eta })
             });

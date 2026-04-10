@@ -388,7 +388,7 @@
 
     async function loadBloodData() {
         try {
-            const res = await fetch('http://localhost:5555/hospitals');
+            const res = await fetch('/hospitals');
             if (!res.ok) {
                 console.warn('Backend offline, using mock blood network data.');
                 hospitals = [
